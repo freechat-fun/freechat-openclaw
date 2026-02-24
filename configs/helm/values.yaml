@@ -1,0 +1,7 @@
+annotations:
+  group: fun.freechat
+app-template:
+  persistence:
+    data:
+      storageClass: 'default'
+      retain: true
