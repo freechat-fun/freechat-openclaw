@@ -17,4 +17,4 @@ test -n "${pod}" || die "ERROR: Failed to find app pod!"
 echo "Found ${pod}"
 
 kubectl logs --kubeconfig ${KUBE_CONFIG} --namespace ${NAMESPACE} \
-  ${ARGS[*]} ${pod}
+  ${ARGS[*]} -c main ${pod}
