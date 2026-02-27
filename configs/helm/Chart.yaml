@@ -4,4 +4,4 @@ appVersion: latest
 description: A Helm chart for OpenClaw
 name: freechat-openclaw
 type: application
-version: 1.3.25
+version: 1.3.26
