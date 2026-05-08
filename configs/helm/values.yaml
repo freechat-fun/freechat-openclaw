@@ -5,3 +5,14 @@ app-template:
     data:
       storageClass: 'default'
       retain: true
+  service:
+    main:
+      controller: main
+      ipFamilyPolicy: SingleStack
+      ipFamilies:
+        - IPv4
+      ports:
+        http:
+          port: 18789
+        voice:
+          port: 3334
