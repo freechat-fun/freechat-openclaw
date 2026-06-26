@@ -1,20 +1,23 @@
 #!/usr/bin/env bash
+# Tail logs of the gateway container. Prefers a pod that is mid-deploy (1/2),
+# otherwise any matching pod.
+#
+# Usage: scripts/pod-logs.sh [--kubeconfig <path>] [-n <ns>] [-v] [kubectl args, e.g. -f]
+source "$(dirname "${BASH_SOURCE[0]}")/setenv.sh"
 
-source $(dirname ${BASH_SOURCE[0]})/setenv.sh
+check_kubectl
 
-# find deploying one
-pod=$(kubectl get pods --kubeconfig ${KUBE_CONFIG} --namespace ${NAMESPACE} \
-  | grep "${PROJECT_NAME}" | grep "1/2" | awk -F' ' '{print $1}' | head -1)
+# Prefer a deploying pod (1/2 ready with 2 containers), else any matching pod.
+pod=$(kubectl get pods --kubeconfig "${KUBE_CONFIG}" --namespace "${NAMESPACE}" \
+  | grep "${DEPLOYMENT}" | grep "1/2" | awk -F' ' '{print $1}' | head -1)
 
 if [[ -z "${pod}" ]]; then
-  # find anyone
-  pod=$(kubectl get pods --kubeconfig ${KUBE_CONFIG} --namespace ${NAMESPACE} \
-    | grep "${PROJECT_NAME}" | awk -F' ' '{print $1}' | head -1)
+  pod=$(kubectl get pods --kubeconfig "${KUBE_CONFIG}" --namespace "${NAMESPACE}" \
+    | grep "${DEPLOYMENT}" | awk -F' ' '{print $1}' | head -1)
 fi
 
-test -n "${pod}" || die "ERROR: Failed to find app pod!"
+[[ -n "${pod}" ]] || die "ERROR: Failed to find app pod!"
 
 echo "Found ${pod}"
-
-kubectl logs --kubeconfig ${KUBE_CONFIG} --namespace ${NAMESPACE} \
-  ${ARGS[*]} -c main ${pod}
+kubectl logs --kubeconfig "${KUBE_CONFIG}" --namespace "${NAMESPACE}" \
+  "${ARGS[@]}" -c "${CONTAINER}" "${pod}"

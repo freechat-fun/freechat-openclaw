@@ -1,0 +1,103 @@
+# Strategic-merge patch on Deployment/openclaw (base).
+#
+# Data preservation (legacy deployment reused its PVC `freechat-openclaw`):
+# - Patch the openclaw-home volume -> claimName: freechat-openclaw (the
+#   existing data PVC; it carries `helm.sh/resource-policy: keep` and survives
+#   `helm uninstall`). The base's own openclaw-home-pvc is NOT created (see
+#   overlay/kustomization.yaml -- base pvc.yaml is excluded); install.sh
+#   creates freechat-openclaw only if it is missing.
+# - init-config: overwrite /home/node/.openclaw/openclaw.json from the
+#   ConfigMap each start (matches legacy CONFIG_MODE=overwrite; runtime state
+#   like paired devices lives in SQLite on the PVC, untouched). AGENTS.md is
+#   seeded only if missing so any existing on-PVC copy is preserved.
+#
+# - Gateway image tag is a fallback default only; the actual tag is set from
+#   OPENCLAW_IMAGE in configs/k8s/deploy.env via a Kustomize `images:`
+#   transformer at apply/render time (scripts/setenv.sh :: prepare_overlay).
+# - Add voice containerPort 3334 (voice-call webhook) + envFrom: openclaw-secrets.
+# - Add chromium sidecar aligned with the legacy deployment: CDP on 9222,
+#   XDG_CACHE_HOME=/tmp, startup/liveness/readiness probes on /json/version,
+#   /tmp-only mount, non-root UID 1000, drop ALL, read-only root FS.
+#
+# The base security posture is preserved (fsGroup 1000, seccomp RuntimeDefault,
+# automountServiceAccountToken false). The legacy privileged init-permissions
+# container is intentionally NOT carried over -- fsGroup: 1000 handles PVC
+# ownership per official guidance.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openclaw
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: init-config
+          command:
+            - sh
+            - -c
+            - 'mkdir -p /home/node/.openclaw/workspace && cp /config/openclaw.json /home/node/.openclaw/openclaw.json && if [ ! -f /home/node/.openclaw/workspace/AGENTS.md ]; then cp /config/AGENTS.md /home/node/.openclaw/workspace/AGENTS.md; fi'
+      containers:
+        - name: gateway
+          image: ghcr.io/openclaw/openclaw:2026.6.10
+          ports:
+            - name: voice
+              containerPort: 3334
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: openclaw-secrets
+        - name: chromium
+          image: chromedp/headless-shell:148.0.7778.97
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: cdp
+              containerPort: 9222
+              protocol: TCP
+          env:
+            - name: XDG_CACHE_HOME
+              value: /tmp
+          startupProbe:
+            httpGet:
+              path: /json/version
+              port: 9222
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /json/version
+              port: 9222
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /json/version
+              port: 9222
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+      volumes:
+        - name: openclaw-home
+          persistentVolumeClaim:
+            claimName: freechat-openclaw

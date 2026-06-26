@@ -1,0 +1,23 @@
+# Standalone PVC manifest for the OpenClaw home directory (/home/node/.openclaw).
+#
+# This file is NOT referenced by kustomization.yaml -- it is applied directly
+# by scripts/install.sh ONLY when the PVC `freechat-openclaw` does not already
+# exist. This preserves the existing data PVC from the legacy Helm release
+# (which carries helm.sh/resource-policy: keep and survives `helm uninstall`)
+# by never applying over it.
+#
+# For a fresh install, install.sh creates this PVC once; for a migrated
+# install, the existing PVC is reused untouched.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: freechat-openclaw
+  labels:
+    app: openclaw
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: default
+  resources:
+    requests:
+      storage: 5Gi

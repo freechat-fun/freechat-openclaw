@@ -1,0 +1,13 @@
+# Vendored from openclaw/scripts/k8s/manifests/kustomization.yaml.
+# LOCAL CUSTOMIZATION: pvc.yaml is intentionally excluded. The freechat-openclaw
+# deployment reuses the existing data PVC `freechat-openclaw` (claimName set in
+# the overlay's deployment-patch.yaml) and manages that PVC outside Kustomize
+# (scripts/install.sh applies configs/k8s/overlay/pvc.yaml only if the PVC is
+# missing). Excluding pvc.yaml here prevents Kustomize from creating/adopting
+# the base's openclaw-home-pvc, which would be an empty orphan PVC.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml

@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
-
-source $(dirname ${BASH_SOURCE[0]})/setenv.sh
+# Remove cert-manager and the ClusterIssuer.
+#
+# Usage: scripts/uninstall-cm.sh [--kubeconfig <path>] [-v]
+source "$(dirname "${BASH_SOURCE[0]}")/setenv.sh"
 
 check_kubectl
 check_helm
 
-LABEL_SELECTOR="app.kubernetes.io/instance=${HELM_name}-cm"
+# Delete the ClusterIssuer first (scope: cluster).
+# NOTE: legacy used `kubectl clusterissuer -l ...` (missing `delete` subcommand) -- corrected.
+kubectl --kubeconfig "${KUBE_CONFIG}" delete clusterissuer "${CLUSTER_ISSUER}" --ignore-not-found 2>/dev/null || true
 
-kubectl --kubeconfig ${KUBE_CONFIG} clusterissuer -l "${LABEL_SELECTOR}"
-helm uninstall --kubeconfig ${KUBE_CONFIG} --namespace ${HELM_cert_manager_namespace} cert-manager
-kubectl --kubeconfig ${KUBE_CONFIG} delete -f \
-  https://github.com/cert-manager/cert-manager/releases/download/${HELM_cert_manager_version}/cert-manager.crds.yaml
+helm uninstall --kubeconfig "${KUBE_CONFIG}" --namespace "${CERT_MANAGER_NAMESPACE}" \
+  "${ARGS[@]}" cert-manager

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
+# Render the final Kubernetes manifests (overlay + base, with the image tags
+# from deploy.env applied via the images: transformer) to stdout without
+# applying. Useful for inspecting what would be deployed.
+#
+# Usage: scripts/render.sh [-v]
+source "$(dirname "${BASH_SOURCE[0]}")/setenv.sh"
 
-source $(dirname ${BASH_SOURCE[0]})/setenv.sh
+check_kubectl
 
-check_helm
-
-# helm repo add openclaw https://serhanekicii.github.io/openclaw-helm
-# helm repo update
-helm template --kubeconfig ${KUBE_CONFIG} --namespace ${NAMESPACE} --create-namespace -f ${values_yaml} \
-  ${ARGS[*]} \
-  ${PROJECT_NAME} \
-  openclaw/openclaw \
-  --version ${HELM_version}
+OVERLAY_DIR="$(prepare_overlay)"
+trap 'rm -rf "${OVERLAY_DIR}"' EXIT
+kubectl kustomize "${OVERLAY_DIR}" "${ARGS[@]}"

@@ -1,0 +1,12 @@
+# Strategic-merge patch on Service/openclaw (base).
+# Adds the voice port (3334) alongside the base gateway port (18789).
+apiVersion: v1
+kind: Service
+metadata:
+  name: openclaw
+spec:
+  ports:
+    - name: voice
+      port: 3334
+      targetPort: 3334
+      protocol: TCP

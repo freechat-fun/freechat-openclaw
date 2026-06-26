@@ -1,0 +1,39 @@
+# Public ingress for the voice-call webhook.
+#
+# Only /voice is exposed publicly (Prefix -> service port "voice" / 3334),
+# matching the legacy deployment. The gateway Control UI on 18789 stays
+# reachable via `kubectl port-forward` only.
+#
+# Requires ingress-nginx (scripts/install-in.sh) and cert-manager with the
+# freechat-letsencrypt-http01 ClusterIssuer (scripts/install-cm.sh).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: openclaw
+  labels:
+    app: openclaw
+  annotations:
+    cert-manager.io/cluster-issuer: freechat-letsencrypt-http01
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    # NOTE: legacy chart had a typo "backend-protolcol"; corrected here.
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - openclaw.jiangsier.xyz
+      secretName: openclaw.jiangsier.xyz-tls
+  rules:
+    - host: openclaw.jiangsier.xyz
+      http:
+        paths:
+          - path: /voice
+            pathType: Prefix
+            backend:
+              service:
+                name: openclaw
+                port:
+                  name: voice

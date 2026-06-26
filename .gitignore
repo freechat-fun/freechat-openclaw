@@ -25,9 +25,11 @@ nbdist/
 # Sublime
 *.sublime*
 
-# Charts
-configs/helm/**/*.tgz
-configs/helm/**/*.lock
+# k8s private files
+configs/k8s/kube-private.conf
+configs/k8s/deploy.env
+configs/k8s/secrets.env
+configs/k8s/overlay/openclaw-config-cm.yaml
 
 # Logs
 logs
