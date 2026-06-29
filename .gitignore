@@ -31,6 +31,9 @@ configs/k8s/deploy.env
 configs/k8s/secrets.env
 configs/k8s/openclaw.json
 
+# Claude Code local guide
+CLAUDE.md
+
 # Logs
 logs
 log.txt
