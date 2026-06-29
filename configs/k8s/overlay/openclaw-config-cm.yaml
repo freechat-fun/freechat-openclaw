@@ -1,0 +1,18 @@
+# ConfigMap strategic-merge patch: overrides data.openclaw.json on
+# ConfigMap/openclaw-config (the base configmap's data.AGENTS.md is preserved).
+#
+# TRACKED, NON-SENSITIVE PLACEHOLDER -- visible to git. The real runtime config
+# lives in the gitignored sibling openclaw.json (plain JSON; ${ENV} substitution
+# from Secret/openclaw-secrets is supported). scripts/setenv.sh::merge_openclaw_config
+# (called by prepare_overlay, i.e. at install/upgrade/render time) writes the real
+# config into a TEMP patch that the wrapper kustomization injects ON TOP of this
+# placeholder, so this file is never written at runtime and never holds real config.
+# Do not put real/sensitive config here -- edit openclaw.json instead.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-config
+  labels:
+    app: openclaw
+data:
+  openclaw.json: "{}"

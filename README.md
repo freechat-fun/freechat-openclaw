@@ -9,13 +9,14 @@ official [Kustomize manifests](https://docs.openclaw.ai/install/kubernetes) (the
 ```
 configs/k8s/
 ├── base/                       # vendored official manifests (tracked; pvc.yaml excluded locally)
-├── overlay/                    # private overlay (tracked, except openclaw-config-cm.yaml)
+├── overlay/                    # private overlay (tracked)
 │   ├── kustomization.yaml
 │   ├── ingress.yaml            # public /voice ingress + TLS
 │   ├── deployment-patch.yaml   # image, chromium sidecar, voice port, envFrom, claimName, init
 │   ├── service-patch.yaml      # voice:3334 port
 │   ├── pvc.yaml                # standalone PVC `freechat-openclaw` (applied by install.sh if missing)
-│   └── openclaw-config-cm.yaml # REAL openclaw.json (gitignored)
+│   └── openclaw-config-cm.yaml # TRACKED ConfigMap patch placeholder (`openclaw.json: "{}"`; non-sensitive)
+├── openclaw.json               # REAL runtime config, plain JSON (gitignored)
 ├── deploy.env                  # non-secret params + image tags (gitignored)
 ├── secrets.env                 # KEY=value secrets (gitignored)
 └── kube-private.conf           # kubeconfig (gitignored)
@@ -45,8 +46,13 @@ runtime state (paired devices, sessions) lives in SQLite on the PVC and is never
 3. Fill `configs/k8s/secrets.env` with `KEY=value` lines for every runtime env var
    (`OPENCLAW_GATEWAY_TOKEN`, provider API keys, Telegram/Twilio tokens, phone numbers, etc.).
    These are loaded into `Secret/openclaw-secrets` and consumed via `envFrom`.
-4. Put the real `openclaw.json` in `configs/k8s/overlay/openclaw-config-cm.yaml` (it uses `${ENV}`
-   substitution from the Secret).
+4. Put the real `openclaw.json` at `configs/k8s/openclaw.json` (plain JSON; `${ENV}`
+   substitution from the Secret is supported). The tracked
+   `configs/k8s/overlay/openclaw-config-cm.yaml` is a non-sensitive placeholder
+   (`openclaw.json: "{}"`); the scripts inject the real config as a temp patch on top
+   of it at install/upgrade/render time (see `merge_openclaw_config` in
+   `scripts/setenv.sh`), so the placeholder stays clean and visible to git. Edit
+   `openclaw.json`, never the placeholder content (keep it `"{}"`).
 
 All four files are gitignored — they never leave your machine.
 
@@ -112,8 +118,9 @@ same legacy names (via the `namePrefix: freechat-` in the overlay).
 > (above) deletes the legacy Deployment so the new one is created fresh.
 
 The legacy `values-private.yaml` has been split into `deploy.env` + `secrets.env` +
-`overlay/openclaw-config-cm.yaml` (the retired `configs/helm/` directory and Helm-render
-scratch files have been removed).
+`openclaw.json` (the real runtime config, injected as a temp patch on top of
+the tracked `overlay/openclaw-config-cm.yaml` placeholder at apply time) — the retired `configs/helm/`
+directory and Helm-render scratch files have been removed.
 
 ### Naming differences from the legacy (no functional impact)
 

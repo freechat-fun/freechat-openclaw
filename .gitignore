@@ -29,7 +29,7 @@ nbdist/
 configs/k8s/kube-private.conf
 configs/k8s/deploy.env
 configs/k8s/secrets.env
-configs/k8s/overlay/openclaw-config-cm.yaml
+configs/k8s/openclaw.json
 
 # Logs
 logs
