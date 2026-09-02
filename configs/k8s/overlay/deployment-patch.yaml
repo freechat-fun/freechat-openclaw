@@ -38,7 +38,7 @@ spec:
             - 'mkdir -p /home/node/.openclaw/workspace && cp /config/openclaw.json /home/node/.openclaw/openclaw.json && if [ ! -f /home/node/.openclaw/workspace/AGENTS.md ]; then cp /config/AGENTS.md /home/node/.openclaw/workspace/AGENTS.md; fi'
       containers:
         - name: gateway
-          image: ghcr.io/openclaw/openclaw:2026.6.10
+          image: ghcr.io/openclaw/openclaw:2026.8.2
           imagePullPolicy: Always
           ports:
             - name: voice
@@ -47,6 +47,10 @@ spec:
           envFrom:
             - secretRef:
                 name: openclaw-secrets
+          # command:
+          #   - openclaw
+          #   - doctor
+          #   - --fix
         - name: chromium
           image: chromedp/headless-shell:148.0.7778.97
           imagePullPolicy: IfNotPresent

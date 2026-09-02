@@ -124,6 +124,8 @@ spec:
           volumeMounts:
             - name: openclaw-home
               mountPath: /home/node/.openclaw
+            - name: openclaw-home
+              mountPath: /home/node/.cache
             - name: tmp-volume
               mountPath: /tmp
           securityContext:
