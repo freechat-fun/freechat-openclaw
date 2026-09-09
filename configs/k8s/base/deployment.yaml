@@ -28,10 +28,7 @@ spec:
           command:
             - sh
             - -c
-            - |
-              cp /config/openclaw.json /home/node/.openclaw/openclaw.json
-              mkdir -p /home/node/.openclaw/workspace
-              cp /config/AGENTS.md /home/node/.openclaw/workspace/AGENTS.md
+            - 'mkdir -p /home/node/.openclaw/workspace && cp /config/openclaw.json /home/node/.openclaw/openclaw.json && if [ ! -f /home/node/.openclaw/workspace/AGENTS.md ]; then cp /config/AGENTS.md /home/node/.openclaw/workspace/AGENTS.md; fi'
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000
@@ -128,6 +125,8 @@ spec:
               mountPath: /home/node/.cache
             - name: tmp-volume
               mountPath: /tmp
+            - name: config
+              mountPath: /config
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
