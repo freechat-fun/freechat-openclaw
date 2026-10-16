@@ -55,6 +55,10 @@ echo
 rm -f "${BASE_DIR}/"*.yaml
 cp -p "${SOURCE}/"*.yaml "${BASE_DIR}/"
 echo "Copied $(ls "${BASE_DIR}/"*.yaml | wc -l) manifest files."
+echo
+echo "WARN: base/*.yaml were just overwritten with upstream copies. Re-apply the"
+echo "      LOCAL CUSTOMIZATION in base/deployment.yaml (the chromium native"
+echo "      sidecar block, marked '# LOCAL CUSTOMIZATION') before committing."
 
 # 2) Re-apply the local customization on kustomization.yaml: drop our previous
 #    header (if present) and the pvc.yaml resource line, then re-prepend the

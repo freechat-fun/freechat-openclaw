@@ -55,9 +55,11 @@ NAMESPACE="${OPENCLAW_NAMESPACE}"
 [[ "${KUSTOMIZE_DIR}" != /* ]] && KUSTOMIZE_DIR="${PROJECT_PATH}/${KUSTOMIZE_DIR}"
 [[ "${SECRETS_ENV}"   != /* ]] && SECRETS_ENV="${PROJECT_PATH}/${SECRETS_ENV}"
 
-# Container images (repo:tag) from deploy.env. Defaults match the tags in
-# configs/k8s/overlay/deployment-patch.yaml; the scripts override them at
-# apply/render time via the kustomize `images:` transformer (see prepare_overlay).
+# Container images (repo:tag) from deploy.env. Defaults are fallbacks only; the
+# manifests pin their own tags (gateway in configs/k8s/overlay/deployment-patch.yaml,
+# chromium in configs/k8s/base/deployment.yaml). The scripts override them at
+# apply/render time via the kustomize `images:` transformer (see prepare_overlay),
+# which matches by image NAME wherever it is defined (base or overlay).
 OPENCLAW_IMAGE="${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:2026.6.9}"
 CHROMIUM_IMAGE="${CHROMIUM_IMAGE:-chromedp/headless-shell:148.0.7778.97}"
 OPENCLAW_REPO="${OPENCLAW_IMAGE%:*}"

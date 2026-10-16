@@ -8,11 +8,12 @@ official [Kustomize manifests](https://docs.openclaw.ai/install/kubernetes) (the
 
 ```
 configs/k8s/
-├── base/                       # vendored official manifests (tracked; pvc.yaml excluded locally)
+├── base/                       # vendored official manifests (tracked; local: pvc.yaml excluded,
+│                               #         + chromium native sidecar in deployment.yaml)
 ├── overlay/                    # private overlay (tracked)
 │   ├── kustomization.yaml
 │   ├── ingress.yaml            # public /voice ingress + TLS
-│   ├── deployment-patch.yaml   # image, chromium sidecar, voice port, envFrom, claimName, init
+│   ├── deployment-patch.yaml   # image, voice port, envFrom, claimName, init
 │   ├── service-patch.yaml      # voice:3334 port
 │   ├── pvc.yaml                # standalone PVC `freechat-openclaw` (applied by install.sh if missing)
 │   └── openclaw-config-cm.yaml # TRACKED ConfigMap patch placeholder (`openclaw.json: "{}"`; non-sensitive)
@@ -23,7 +24,16 @@ configs/k8s/
 scripts/                        # install/upgrade/render/uninstall/restart + pod helpers + sync-base
 ```
 
-The overlay adds (on top of the official base): a chromium sidecar for browser automation, the
+The base deployment locally carries a **chromium native sidecar** for browser automation
+(headless-shell, CDP on 9222), declared as `initContainers` + `restartPolicy: Always` so it starts
+before the gateway, auto-restarts on crash, and terminates last (K8s native sidecar pattern, GA in
+1.33; sidecars support all three probes). The Chrome profile persists on the data PVC
+(`--user-data-dir=/.chrome` = subPath `chromium-profile/` of `freechat-openclaw`, pre-created by
+`init-config` as uid 1000 because fsGroup does not apply to auto-created subPath dirs), so site
+logins survive pod restarts; browser caches stay on the ephemeral `/tmp` emptyDir
+(`--disk-cache-dir`). Note: the image entrypoint pins headless-shell to `:9223` behind a socat
+bridge on `:9222` -- extra browser flags go via `args:` (appended through run.sh's `$@`); never
+override `--remote-debugging-port`. The overlay adds (on top of the official base): the
 voice port 3334 + `/voice` ingress, `envFrom` the `openclaw-secrets` Secret, and reuses the existing
 data PVC `freechat-openclaw` (claimName patched in `deployment-patch.yaml`). The privileged
 `init-permissions` container was dropped in favor of `fsGroup: 1000` per official hardening. Gateway

@@ -40,10 +40,15 @@ spec:
         - name: init-config
           image: busybox:1.37
           imagePullPolicy: IfNotPresent
+          # LOCAL CUSTOMIZATION: also pre-create chromium-profile/ for the
+          # chromium sidecar's subPath mount. kubelet auto-creates missing
+          # subPath dirs as root:root and fsGroup does NOT apply to them;
+          # this init runs as uid 1000, so the dir ends up writable by the
+          # sidecar.
           command:
             - sh
             - -c
-            - 'mkdir -p /home/node/.openclaw/workspace && cp /config/openclaw.json /home/node/.openclaw/openclaw.json && if [ ! -f /home/node/.openclaw/workspace/AGENTS.md ]; then cp /config/AGENTS.md /home/node/.openclaw/workspace/AGENTS.md; fi'
+            - 'mkdir -p /home/node/.openclaw/workspace /home/node/.openclaw/chromium-profile && cp /config/openclaw.json /home/node/.openclaw/openclaw.json && if [ ! -f /home/node/.openclaw/workspace/AGENTS.md ]; then cp /config/AGENTS.md /home/node/.openclaw/workspace/AGENTS.md; fi'
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000
@@ -59,6 +64,87 @@ spec:
               mountPath: /home/node/.openclaw
             - name: config
               mountPath: /config
+        # LOCAL CUSTOMIZATION: chromium as a NATIVE sidecar (moved here from the
+        # overlay's deployment-patch.yaml). `initContainers` + `restartPolicy: Always`
+        # is the K8s native sidecar pattern (beta since 1.29, GA in 1.33): it starts
+        # before the main `gateway` container, auto-restarts on crash, and is
+        # terminated last. Sidecars support startup/liveness/readiness probes.
+        # It runs after fix-tmp-permissions because it writes to /tmp
+        # (XDG_CACHE_HOME=/tmp on a read-only root FS), and after init-config
+        # because its profile dir (subPath chromium-profile of the
+        # openclaw-home PVC) is pre-created there as uid 1000.
+        # Profile persistence: `args:` are appended by the image entrypoint --
+        # /headless-shell/run.sh passes "$@" to headless-shell AFTER its own
+        # hardcoded flags. Do NOT add --remote-debugging-port here: run.sh pins
+        # headless-shell to :9223 and bridges :9222 via socat; a second port
+        # flag would override :9223 (last-wins) and collide with socat on :9222.
+        # --user-data-dir=/.chrome (PVC subPath) keeps login state (Cookies,
+        # Login Data) across pod restarts; --disk-cache-dir keeps the churny
+        # browser caches on the ephemeral /tmp emptyDir instead of the PVC.
+        # NOTE: sync-base.sh overwrites this file with the upstream copy --
+        # re-apply this block after syncing (the script prints a warning).
+        - name: chromium
+          image: chromedp/headless-shell:151.0.7922.109
+          imagePullPolicy: IfNotPresent
+          restartPolicy: Always
+          args:
+            - --user-data-dir=/.chrome
+            - --profile-directory=Default
+            - --no-first-run
+            - --no-default-browser-check
+            - "--remote-allow-origins=*"
+            - --disk-cache-dir=/tmp/chrome-cache
+          ports:
+            - name: cdp
+              containerPort: 9222
+              protocol: TCP
+          env:
+            - name: XDG_CACHE_HOME
+              value: /tmp
+          startupProbe:
+            httpGet:
+              path: /json/version
+              port: 9222
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /json/version
+              port: 9222
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /json/version
+              port: 9222
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+            - name: openclaw-home
+              mountPath: /.chrome
+              subPath: chromium-profile
       containers:
         - name: gateway
           image: ghcr.io/openclaw/openclaw:slim

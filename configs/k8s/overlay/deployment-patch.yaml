@@ -15,9 +15,13 @@
 #   OPENCLAW_IMAGE in configs/k8s/deploy.env via a Kustomize `images:`
 #   transformer at apply/render time (scripts/setenv.sh :: prepare_overlay).
 # - Add voice containerPort 3334 (voice-call webhook) + envFrom: openclaw-secrets.
-# - Add chromium sidecar aligned with the legacy deployment: CDP on 9222,
-#   XDG_CACHE_HOME=/tmp, startup/liveness/readiness probes on /json/version,
-#   /tmp-only mount, non-root UID 1000, drop ALL, read-only root FS.
+# - The chromium sidecar now lives in base/deployment.yaml as a NATIVE sidecar
+#   (initContainers + restartPolicy: Always, CDP on 9222, XDG_CACHE_HOME=/tmp,
+#   startup/liveness/readiness probes on /json/version, /tmp-only mount,
+#   non-root UID 1000, drop ALL, read-only root FS) and is no longer patched
+#   here. Its image tag is still driven by CHROMIUM_IMAGE in deploy.env -- the
+#   Kustomize images: transformer matches chromedp/headless-shell wherever it
+#   is defined (base or overlay).
 #
 # The base security posture is preserved (fsGroup 1000, seccomp RuntimeDefault,
 # automountServiceAccountToken false). The legacy privileged init-permissions
@@ -45,57 +49,6 @@ spec:
           #   - openclaw
           #   - doctor
           #   - --fix
-        - name: chromium
-          image: chromedp/headless-shell:151.0.7922.109
-          imagePullPolicy: IfNotPresent
-          ports:
-            - name: cdp
-              containerPort: 9222
-              protocol: TCP
-          env:
-            - name: XDG_CACHE_HOME
-              value: /tmp
-          startupProbe:
-            httpGet:
-              path: /json/version
-              port: 9222
-            initialDelaySeconds: 5
-            periodSeconds: 5
-            timeoutSeconds: 5
-            failureThreshold: 12
-          livenessProbe:
-            httpGet:
-              path: /json/version
-              port: 9222
-            initialDelaySeconds: 10
-            periodSeconds: 30
-            timeoutSeconds: 5
-            failureThreshold: 6
-          readinessProbe:
-            httpGet:
-              path: /json/version
-              port: 9222
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          resources:
-            requests:
-              cpu: 100m
-              memory: 256Mi
-            limits:
-              cpu: "1"
-              memory: 1Gi
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 1000
-            runAsGroup: 1000
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
-          volumeMounts:
-            - name: tmp-volume
-              mountPath: /tmp
       volumes:
         - name: openclaw-home
           persistentVolumeClaim:
