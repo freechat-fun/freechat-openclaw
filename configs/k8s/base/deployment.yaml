@@ -115,18 +115,18 @@ spec:
             limits:
               memory: 4Gi
               cpu: "2"
-            startupProbe:
-              httpGet: { path: /healthz, port: 18789 }
-              periodSeconds: 5
-              failureThreshold: 24
-            livenessProbe:
-              httpGet: { path: /healthz, port: 18789 }
-              periodSeconds: 30
-              timeoutSeconds: 10
-            readinessProbe:
-              httpGet: { path: /readyz, port: 18789 }
-              periodSeconds: 10
-              timeoutSeconds: 5
+          startupProbe:
+            httpGet: { path: /healthz, port: 18789 }
+            periodSeconds: 5
+            failureThreshold: 24
+          livenessProbe:
+            httpGet: { path: /healthz, port: 18789 }
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet: { path: /readyz, port: 18789 }
+            periodSeconds: 10
+            timeoutSeconds: 5
           volumeMounts:
             - name: openclaw-home
               mountPath: /home/node/.openclaw
