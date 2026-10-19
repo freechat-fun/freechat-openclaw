@@ -92,8 +92,9 @@ spec:
             - --profile-directory=Default
             - --no-first-run
             - --no-default-browser-check
-            - "--remote-allow-origins=*"
             - --disk-cache-dir=/tmp/chrome-cache
+            - --disable-blink-features=AutomationControlled
+            - "--remote-allow-origins=*"
           ports:
             - name: cdp
               containerPort: 9222
