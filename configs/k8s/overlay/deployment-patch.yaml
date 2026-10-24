@@ -49,6 +49,9 @@ spec:
           #   - openclaw
           #   - doctor
           #   - --fix
+          # startupProbe: null
+          # livenessProbe: null
+          # readinessProbe: null
       volumes:
         - name: openclaw-home
           persistentVolumeClaim:
