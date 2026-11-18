@@ -24,7 +24,10 @@ spec:
       initContainers:
         - name: fix-tmp-permissions
           image: busybox:1.37
-          command: ["chmod", "1777", "/tmp"]
+          command: 
+            - sh
+            - -c
+            - 'chmod 1777 /tmp'
           securityContext:
             runAsUser: 0
           resources:
@@ -48,7 +51,14 @@ spec:
           command:
             - sh
             - -c
-            - 'mkdir -p /home/node/.openclaw/workspace /home/node/.openclaw/chromium-profile && cp /config/openclaw.json /home/node/.openclaw/openclaw.json && if [ ! -f /home/node/.openclaw/workspace/AGENTS.md ]; then cp /config/AGENTS.md /home/node/.openclaw/workspace/AGENTS.md; fi && mkdir -p /home/node/.openclaw/tmp && chmod 0755 /home/node/.openclaw.update-captures /home/node/.cache /home/node/.openclaw/tmp'
+            - |
+              mkdir -p /home/node/.openclaw/workspace /home/node/.openclaw/chromium-profile \
+              && cp /config/openclaw.json /home/node/.openclaw/openclaw.json \
+              && if [ ! -f /home/node/.openclaw/workspace/AGENTS.md ]; then cp /config/AGENTS.md /home/node/.openclaw/workspace/AGENTS.md; fi \
+              && mkdir -p /home/node/.openclaw/tmp \
+              && chmod 755 /home/node/.openclaw.update-captures /home/node/.cache /home/node/.openclaw/tmp \
+              && chmod 700 /home/node/.openclaw /home/node/.openclaw/state /home/node/.openclaw/client /home/node/.openclaw/control \
+              && chmod 600 /home/node/.openclaw/state/openclaw.sqlite* /home/node/.openclaw/client/credentials.sqlite* /home/node/.openclaw/control/services.sqlite*
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000
