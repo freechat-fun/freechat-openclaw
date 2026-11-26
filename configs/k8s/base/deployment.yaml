@@ -57,7 +57,7 @@ spec:
               && if [ ! -f /home/node/.openclaw/workspace/AGENTS.md ]; then cp /config/AGENTS.md /home/node/.openclaw/workspace/AGENTS.md; fi \
               && mkdir -p /home/node/.openclaw/tmp \
               && chmod 755 /home/node/.openclaw.update-captures /home/node/.cache /home/node/.openclaw/tmp \
-              && chmod 700 /home/node/.openclaw /home/node/.openclaw/state /home/node/.openclaw/client /home/node/.openclaw/control \
+              && chmod 700 /home/node/.openclaw /home/node/.openclaw/state /home/node/.openclaw/client /home/node/.openclaw/control /home/node/.cache/openclaw/sqlite-* \
               && chmod 600 /home/node/.openclaw/state/openclaw.sqlite* /home/node/.openclaw/client/credentials.sqlite* /home/node/.openclaw/control/services.sqlite*
           securityContext:
             runAsUser: 1000
